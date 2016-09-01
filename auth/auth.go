@@ -19,10 +19,9 @@ var (
 	JWTPrivateKey = "replace_me_with_secure_key"
 )
 
-// TokenExchanger takes in a given token
-// and returns another. It's primary purpose
-// is to exchange public tokens with short lived
-// JWT for non-public usage
+// TokenExchanger exchanges a token for another.
+// It's primary purpose is to exchange opaque
+// public tokens for short lived JWT for non-public usage
 type TokenExchanger interface {
 	Exchange(token string) (string, error)
 }
