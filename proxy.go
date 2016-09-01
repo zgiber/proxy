@@ -8,7 +8,7 @@ import (
 )
 
 type roundTripper struct {
-	*http.Transport
+	rt http.RoundTripper
 }
 
 // ReverseProxy is the same as httputil.ReverseProxy
@@ -18,7 +18,15 @@ type ReverseProxy struct {
 	*httputil.ReverseProxy
 }
 
-func newRoundTripper(t *http.Transport) http.RoundTripper {
+func New() *ReverseProxy {
+	return &ReverseProxy{
+		&httputil.ReverseProxy{
+			Transport: newRoundTripper(http.DefaultTransport),
+		},
+	}
+}
+
+func newRoundTripper(t http.RoundTripper) http.RoundTripper {
 	return &roundTripper{t}
 }
 
@@ -26,7 +34,7 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	if ctx := req.Context(); ctx.Err() != nil {
 		return nil, errorFromContext(ctx)
 	}
-	return rt.RoundTrip(req)
+	return rt.rt.RoundTrip(req)
 }
 
 func errorFromContext(ctx context.Context) error {
