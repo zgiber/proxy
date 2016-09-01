@@ -2,6 +2,8 @@ package proxy
 
 import "net/http"
 
+// ChainDirectors takes a number of directors and chains them, returning
+// a single director.
 func ChainDirectors(directors ...func(*http.Request)) func(*http.Request) {
 	return func(req *http.Request) {
 
