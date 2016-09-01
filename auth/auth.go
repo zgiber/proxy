@@ -1,4 +1,4 @@
-package proxy
+package auth
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ var (
 // is to exchange public tokens with short lived
 // JWT for non-public usage
 type TokenExchanger interface {
-	Exchange(token string) string
+	Exchange(token string) (string, error)
 }
 
 // NewRandomToken returns a crypto safe
