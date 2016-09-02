@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"net/url"
 
@@ -9,19 +10,23 @@ import (
 
 func main() {
 	reverseProxy := proxy.New()
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	targets := map[string]*url.URL{
 		"/google": &url.URL{
-			Scheme: "https",
+			Scheme: "http",
 			Host:   "google.com",
 		},
 		"/bing": &url.URL{
-			Scheme: "https",
+			Scheme: "http",
 			Host:   "bing.com",
 		},
 	}
 
-	reverseProxy.AddDirector(proxy.NewRouterDirector(targets))
+	err := reverseProxy.AddDirector(proxy.NewRouterDirector(targets))
+	if err != nil {
+		log.Println(err)
+	}
 
 	go reverseProxy.ListenAndServeConfigAPI(":9002") // TODO: add some resilience
 	http.ListenAndServe(":9001", reverseProxy)
