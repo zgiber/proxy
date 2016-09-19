@@ -23,11 +23,11 @@ func main() {
 		},
 	}
 
-	err := reverseProxy.AddDirector(proxy.NewRouterDirector(targets))
+	err := reverseProxy.AddDirector(directors.NewRouterDirector(targets))
 	if err != nil {
 		log.Println(err)
 	}
 
-	go reverseProxy.ListenAndServeConfigAPI(":9002") // TODO: add some resilience
+	go reverseProxy.ListenAndServeDirectorConfigAPI(":9002") // TODO: add some resilience
 	http.ListenAndServe(":9001", reverseProxy)
 }

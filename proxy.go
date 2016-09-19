@@ -5,7 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httputil"
-	"strings"
+
+	"github.com/zgiber/proxy/directors"
 )
 
 type roundTripper struct {
@@ -38,7 +39,7 @@ func (rp *ReverseProxy) AddDirector(director func(req *http.Request)) error {
 		return nil
 	}
 
-	d, err := ChainDirectors(rp.Director, director)
+	d, err := directors.Chain(rp.Director, director)
 	if err != nil {
 		rp.Director = d
 	}
@@ -50,11 +51,11 @@ func (rp *ReverseProxy) AddDirector(director func(req *http.Request)) error {
 // This way we can provide a http configuration interface for
 // directors to be changed/configured on the fly.
 func (rp *ReverseProxy) AddDynamicDirector(
-	configPath string,
-	configAPIHandler http.Handler,
+	directorConfigPath string,
+	directorConfigHandler http.Handler,
 	director func(req *http.Request),
 ) error {
-	rp.configAPI.Handle(configPath, configAPIHandler)
+	rp.configAPI.Handle(directorConfigPath, directorConfigHandler)
 	d, err := ChainDirectors(rp.Director, director)
 	if err != nil {
 		rp.Director = d
@@ -64,13 +65,13 @@ func (rp *ReverseProxy) AddDynamicDirector(
 
 // ListenAndServeConfigAPI starts the http server for the configuration
 // interface on the given addr.
-func (rp *ReverseProxy) ListenAndServeConfigAPI(addr string) error {
+func (rp *ReverseProxy) ListenAndServeDirectorConfigAPI(addr string) error {
 	return http.ListenAndServe(addr, rp.configAPI)
 }
 
 // ListenAndServeConfigAPITLS starts the https server for the configuration
 // interface on the given addr.
-func (rp *ReverseProxy) ListenAndServeConfigAPITLS(addr, certFile, keyFile string) error {
+func (rp *ReverseProxy) ListenAndServeDirectorConfigAPITLS(addr, certFile, keyFile string) error {
 	return http.ListenAndServeTLS(addr, certFile, keyFile, rp.configAPI)
 }
 
@@ -83,19 +84,6 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, errorFromContext(ctx)
 	}
 	return rt.rt.RoundTrip(req)
-}
-
-// blatantly coped from standard lib
-func singleJoiningSlash(a, b string) string {
-	aslash := strings.HasSuffix(a, "/")
-	bslash := strings.HasPrefix(b, "/")
-	switch {
-	case aslash && bslash:
-		return a + b[1:]
-	case !aslash && !bslash:
-		return a + "/" + b
-	}
-	return a + b
 }
 
 func errorFromContext(ctx context.Context) error {
