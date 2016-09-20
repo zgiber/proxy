@@ -17,13 +17,13 @@ func TestMatchRoutes(t *testing.T) {
 	}
 
 	results := []interface{}{}
-	expected := []interface{}{1, 2, "user123", -1, -1, 4}
+	expected := []interface{}{1, 2, "user123", -1, -1, 3}
 
 	targets := map[string]func(*http.Request){
 		"/segment1/segment2/segment3": func(req *http.Request) { results = append(results, 1) },
 		"/segment2/segment3":          func(req *http.Request) { results = append(results, 2) },
 		"/segment3/:user_id/resource": func(req *http.Request) { results = append(results, req.Context().Value("user_id")) },
-		"/": func(req *http.Request) { results = append(results, 4) },
+		"/": func(req *http.Request) { results = append(results, 3) },
 	}
 
 	rt := buildRouteTree(targets)
