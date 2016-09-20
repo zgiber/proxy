@@ -3,31 +3,32 @@ package main
 import (
 	"log"
 	"net/http"
-	"net/url"
 
 	"github.com/zgiber/proxy"
+	"github.com/zgiber/proxy/directors"
 )
 
 func main() {
 	reverseProxy := proxy.New()
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	targets := map[string]*url.URL{
-		"/google": &url.URL{
-			Scheme: "http",
-			Host:   "google.com",
-		},
-		"/bing": &url.URL{
-			Scheme: "http",
-			Host:   "bing.com",
-		},
+	// Global stuff
+	reverseProxy.AddDirector(directors.Chain(
+		directors.NewRateLimiter(),
+		directors.NewCorrelation(),
+	))
+
+	// routed endpoints
+	targets := map[string]func(*http.Request){
+		"/hello": directors.NewSingleHost("http://localhost:8080/"), // start something on port 8080 first... (python -m SimpleHTTPServer 8080)
 	}
 
-	err := reverseProxy.AddDirector(directors.NewRouterDirector(targets))
-	if err != nil {
-		log.Println(err)
-	}
+	// add router director
+	reverseProxy.AddDirector(directors.NewRouter(targets))
 
-	go reverseProxy.ListenAndServeDirectorConfigAPI(":9002") // TODO: add some resilience
+	// start configuration backend
+	go reverseProxy.ListenAndServeDirectorConfigAPI(":9002") // TODO: add some resilience to the config backend
+
+	// start proxy
 	http.ListenAndServe(":9001", reverseProxy)
 }

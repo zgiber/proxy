@@ -1,19 +1,20 @@
 package directors
 
 import (
-	"errors"
+	"log"
 	"net/http"
 )
 
 // Chain takes a number of directors and chains them, returning
 // a single director.
-func Chain(directors ...func(*http.Request)) (func(*http.Request), error) {
+func Chain(directors ...func(*http.Request)) func(*http.Request) {
 	for _, director := range directors {
 		if director == nil {
-			return nil, errors.New("director can not be nil")
+			log.Fatal("director can not be nil")
 		}
 
 	}
+
 	return func(req *http.Request) {
 
 		ctx := req.Context()
@@ -28,5 +29,5 @@ func Chain(directors ...func(*http.Request)) (func(*http.Request), error) {
 				// error is handled by the RoundTripper
 			}
 		}
-	}, nil
+	}
 }
