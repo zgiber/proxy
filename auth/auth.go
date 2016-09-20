@@ -28,21 +28,28 @@ type TokenExchanger interface {
 
 // NewRandomToken returns a crypto safe
 // random token of the given length
-func NewRandomToken(length int) []byte {
+func NewRandomToken(length int) ([]byte, error) {
 	l := big.NewInt(int64(len(randomCharSet)))
 
 	result := make([]byte, length, length)
 	for i := 0; i < length; i++ {
-		n, _ := rand.Int(rand.Reader, l)
+		n, err := rand.Int(rand.Reader, l)
+		if err != nil {
+			return nil, err
+		}
 		result[i] = randomCharSet[n.Int64()]
 	}
-	return result
+	return result, nil
 }
 
 // NewRandomToken returns a crypto safe
 // random token of the given length as string
-func NewRandomTokenString(length int) string {
-	return string(NewRandomToken(length))
+func NewRandomTokenString(length int) (string, error) {
+	b, err := NewRandomToken(length)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 // NewJWT returns a JWT signed with JWTPrivateKey
