@@ -1,17 +1,20 @@
 package directors
 
 import (
+	"log"
 	"net/http"
 	"net/url"
 )
 
-// NewSingleHostDirector returns a new func(req *http.Request) that routes
-// URLs to the scheme, host, and base path provided in target. If the
-// target's path is "/base" and the incoming request was for "/dir",
-// the target request will be for /base/dir.
-// NewSingleHostDirector does not rewrite the Host header.
-func NewSingleHostDirector(target *url.URL) func(req *http.Request) {
+// NewSingleHost returns a new func(req *http.Request) that routes
+// requests to the scheme, host, and path path provided in target.
+func NewSingleHost(targetURL string) func(req *http.Request) {
+	target, err := url.Parse(targetURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return func(req *http.Request) {
-		RewriteRequest(target, req)
+		rewriteRequest(target, req)
 	}
 }
