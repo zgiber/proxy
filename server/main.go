@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/zgiber/proxy"
 	"github.com/zgiber/proxy/directors"
@@ -14,7 +15,7 @@ func main() {
 
 	// Global stuff
 	reverseProxy.AddDirector(directors.Chain(
-		directors.NewRateLimiter(),
+		directors.NewRateLimiter(100*time.Millisecond, 30*time.Second, 10), // delay (between calls), burst timeout, number of burst calls
 		directors.NewCorrelation(),
 	))
 
