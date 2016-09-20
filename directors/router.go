@@ -16,7 +16,7 @@ type routeTree struct {
 	children map[string]*routeTree
 }
 
-func NewRouterDirector(targets map[string]func(*http.Request)) func(req *http.Request) {
+func NewRouter(targets map[string]func(*http.Request)) func(req *http.Request) {
 	rt := buildRouteTree(targets)
 
 	return func(req *http.Request) {
