@@ -3,6 +3,8 @@ package proxy
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"net/http/httputil"
 
@@ -33,17 +35,17 @@ func New() *ReverseProxy {
 
 // AddDirector registers a director to be chained after the existing
 // proxy director.
-func (rp *ReverseProxy) AddDirector(director func(req *http.Request)) error {
-	if rp.Director == nil {
-		rp.Director = director
-		return nil
+func (rp *ReverseProxy) AddDirector(director func(req *http.Request)) {
+	if director == nil {
+		log.Fatal("director must be non nil")
 	}
 
-	d, err := directors.Chain(rp.Director, director)
-	if err != nil {
-		rp.Director = d
+	if rp.Director == nil {
+		rp.Director = director
+		return
 	}
-	return err
+
+	rp.Director = directors.Chain(rp.Director, director)
 }
 
 // AddDynamicDirector registers a director on the reverseproxy and
@@ -54,13 +56,9 @@ func (rp *ReverseProxy) AddDynamicDirector(
 	directorConfigPath string,
 	directorConfigHandler http.Handler,
 	director func(req *http.Request),
-) error {
+) {
 	rp.configAPI.Handle(directorConfigPath, directorConfigHandler)
-	d, err := ChainDirectors(rp.Director, director)
-	if err != nil {
-		rp.Director = d
-	}
-	return err
+	rp.Director = directors.Chain(rp.Director, director)
 }
 
 // ListenAndServeConfigAPI starts the http server for the configuration
@@ -80,6 +78,7 @@ func newRoundTripper(t http.RoundTripper) http.RoundTripper {
 }
 
 func (rt *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	fmt.Printf("% v", req)
 	if ctx := req.Context(); ctx.Err() != nil {
 		return nil, errorFromContext(ctx)
 	}
