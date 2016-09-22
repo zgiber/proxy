@@ -81,6 +81,7 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	fmt.Printf("% v", req)
 	if ctx := req.Context(); ctx.Err() != nil {
 		return nil, errorFromContext(ctx)
+		// TODO: return appropriate responses for certain errors
 	}
 	return rt.rt.RoundTrip(req)
 }

@@ -46,14 +46,19 @@ func rewriteRequestPath(targetPath string, req *http.Request) {
 
 	for i := 0; i < len(pathSegments); i++ {
 		segment := pathSegments[i]
+
 		if strings.HasPrefix(segment, ":") {
 			value := req.Context().Value(segment[1:])
 			if stringValue, ok := value.(string); ok {
 				pathSegments[i] = stringValue
 			}
 		}
-		if segment == "+" {
-			pathSegments[i] = strings.Trim(req.URL.Path, "/")
+
+		if segment == "*" {
+			if requestPathIgnored, ok := req.Context().Value("request.path.ignored").(string); ok {
+				pathSegments = append(pathSegments[:i], requestPathIgnored)
+				break
+			}
 		}
 	}
 
