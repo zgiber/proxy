@@ -20,8 +20,12 @@ func main() {
 	))
 
 	// routed endpoints
+	// TODO: use * wildcard match
 	targets := map[string]func(*http.Request){
-		"/hello": directors.NewSingleHost("http://localhost:8080/"), // start something on port 8080 first... (python -m SimpleHTTPServer 8080)
+		"/hello":                 directors.NewSingleHost("http://localhost:8080/mypath"),    // start something on port 8080 first... (python -m SimpleHTTPServer 8080)
+		"/api/:user_id/profile":  directors.NewSingleHost("http://localhost:8081"),           // note the lack of '/' in the end.. this will not change paths, just host and scheme
+		"/api/:user_id/profile2": directors.NewSingleHost("http://localhost:8081/"),          // just an idea.. disregard for now
+		"/api/:user_id/*":        directors.NewSingleHost("http://localhost:8081/whatevers"), // just an idea.. disregard for now
 	}
 
 	// add router director
