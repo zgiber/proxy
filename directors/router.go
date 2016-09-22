@@ -9,6 +9,8 @@ import (
 	"sync"
 )
 
+type errNotFound error
+
 type routeTree struct {
 	sync.RWMutex
 	route    string
@@ -20,8 +22,8 @@ func NewRouter(targets map[string]func(*http.Request)) func(req *http.Request) {
 	rt := buildRouteTree(targets)
 
 	return func(req *http.Request) {
-		if director, ok := rt.matchRoute(req.URL.Path); ok {
-			director(req)
+		if d, match := rt.matchRoute(req.URL.Path); match {
+			d(req)
 		} else {
 			cancelRequestWithError(req, errors.New("invalid target"))
 		}
@@ -32,34 +34,53 @@ func NewRouter(targets map[string]func(*http.Request)) func(req *http.Request) {
 // variable values defined in the route by ":key" syntax
 // are applied to the request context by wrapping the director.
 func (rt *routeTree) matchRoute(path string) (func(*http.Request), bool) {
-	pathSegments := strings.Split(strings.Trim(path, "/"), "/")
-	var match bool
-	variables := map[string]string{}
+	// TODO: sanitize incoming paths for pattern matching
+
+	var director func(*http.Request)
+	pathVariables := map[string]string{}
+
+	var match, wildcardmatch bool
 	currentNode := rt
-
+	pathSegments := strings.Split(strings.Trim(path, "/"), "/")
 	for _, pathSegment := range pathSegments {
-		currentNode, match = currentNode.matchSegment(pathSegment)
-		if !match {
-			return nil, false
+
+		currentNode.RLock()
+		wildcardNode, ok := currentNode.children["*"]
+		currentNode.RUnlock()
+
+		if ok {
+			wildcardmatch = true
+			director = wildcardNode.director
 		}
 
-		if strings.HasPrefix(currentNode.route, ":") {
-			key := currentNode.route[1:]
-			variables[key] = pathSegment
+		currentNode.RLock()
+		variableNode, ok := currentNode.children[":"]
+		currentNode.RUnlock()
+
+		if ok {
+			variable := strings.TrimPrefix(variableNode.route, ":")
+			pathVariables[variable] = pathSegment
+			currentNode = variableNode
+			match = true
+		}
+
+		currentNode.RLock()
+		nextNode, ok := currentNode.children[pathSegment]
+		currentNode.RUnlock()
+
+		if ok {
+			currentNode = nextNode
+			match = true
+		} else {
+			match = false
 		}
 	}
 
-	director := directorWithVariables(currentNode.director, variables)
-	return director, match
-}
-
-func (rt *routeTree) matchSegment(segment string) (*routeTree, bool) {
-	next, ok := rt.children[segment]
-	if !ok {
-		next, ok = rt.children["*"]
+	if match {
+		director = currentNode.director
 	}
 
-	return next, ok
+	return director, match || wildcardmatch
 }
 
 func newRouteTree(route string) *routeTree {
@@ -67,16 +88,21 @@ func newRouteTree(route string) *routeTree {
 		route: route,
 		director: func(req *http.Request) {
 			// handler on incomplete routes doesn't match by default
-			cancelRequestWithError(req, errors.New("location not found")) // TODO: check error handling.. 404?
+			cancelRequestWithError(req, errNotFound(errors.New("not found")))
+			// TODO: check error handling.. 404?
 		},
 		children: map[string]*routeTree{},
 	}
 }
 
 func buildRouteTree(targets map[string]func(*http.Request)) *routeTree {
+	// TODO: sanitize route definitions
 	root := &routeTree{
 		children: map[string]*routeTree{},
 	}
+
+	root.Lock()
+	defer root.Unlock()
 
 	for routeDefinition, target := range targets {
 		if !routePathIsValid(routeDefinition) {
@@ -88,18 +114,31 @@ func buildRouteTree(targets map[string]func(*http.Request)) *routeTree {
 
 		var child *routeTree
 		var ok bool
+
 		for _, pathSegment := range path {
 
-			child, ok = currentNode.children[pathSegment]
+			if strings.HasPrefix(pathSegment, ":") {
+				child, ok = currentNode.children[":"]
+			} else {
+				child, ok = currentNode.children[pathSegment]
+			}
 			if !ok {
 				child = newRouteTree(pathSegment)
 			}
-			if strings.HasPrefix(pathSegment, ":") {
+
+			switch {
+			case pathSegment == "*":
 				currentNode.children["*"] = child
-			} else {
+				child.director = target
+
+			case strings.HasPrefix(pathSegment, ":"):
+				currentNode.children[":"] = child
+				currentNode = child
+
+			default:
 				currentNode.children[pathSegment] = child
+				currentNode = child
 			}
-			currentNode = child
 		}
 
 		// set director on the final pathSegment (full match)
