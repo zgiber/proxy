@@ -32,7 +32,7 @@ func main() {
 	reverseProxy.AddDirector(directors.NewRouter(targets))
 
 	// start configuration backend
-	go reverseProxy.ListenAndServeDirectorConfigAPI(":9002") // TODO: add some resilience to the config backend
+	go reverseProxy.ListenAndServeDirectorConfig(":9002") // TODO: add some resilience to the config backend
 
 	// start proxy
 	http.ListenAndServe(":9001", reverseProxy)
