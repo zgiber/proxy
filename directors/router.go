@@ -50,7 +50,7 @@ func (rt *routeTree) matchRoute(path string) (func(*http.Request), bool) {
 
 		if ok {
 			wildcardmatch = true
-			director = wildcardNode.director
+			director = directorWithVariables(wildcardNode.director, pathVariables)
 		}
 
 		currentNode.RLock()
@@ -77,7 +77,7 @@ func (rt *routeTree) matchRoute(path string) (func(*http.Request), bool) {
 	}
 
 	if match {
-		director = currentNode.director
+		director = directorWithVariables(currentNode.director, pathVariables)
 	}
 
 	return director, match || wildcardmatch
