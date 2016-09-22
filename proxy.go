@@ -61,15 +61,15 @@ func (rp *ReverseProxy) AddDynamicDirector(
 	rp.Director = directors.Chain(rp.Director, director)
 }
 
-// ListenAndServeConfigAPI starts the http server for the configuration
+// ListenAndServeDirectorConfig starts the http server for the configuration
 // interface on the given addr.
-func (rp *ReverseProxy) ListenAndServeDirectorConfigAPI(addr string) error {
+func (rp *ReverseProxy) ListenAndServeDirectorConfig(addr string) error {
 	return http.ListenAndServe(addr, rp.configAPI)
 }
 
-// ListenAndServeConfigAPITLS starts the https server for the configuration
+// ListenAndServeDirectorConfigTLS starts the https server for the configuration
 // interface on the given addr.
-func (rp *ReverseProxy) ListenAndServeDirectorConfigAPITLS(addr, certFile, keyFile string) error {
+func (rp *ReverseProxy) ListenAndServeDirectorConfigTLS(addr, certFile, keyFile string) error {
 	return http.ListenAndServeTLS(addr, certFile, keyFile, rp.configAPI)
 }
 
