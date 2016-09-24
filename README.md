@@ -5,6 +5,7 @@ Collection of packages for composing reverse proxy implementation. Requires Go 1
 Under development. Not nearly publishable. The goals for the first release are:
   - A solid configuration framework
   - A good router middleware
+  - Rate limiter middleware
   - Example authentication middlewares
   - URL rewrite middleware
   - Load balancer middleware
